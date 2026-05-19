@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#7c6ef7" />
+  <title>Life Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ── Sidebar / bottom nav ──────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="app-name">Life Tracker</div>
+      <div class="app-sub">tu diario personal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" id="nav-list"     href="#list"     onclick="navigate('list')">
+        <span class="nav-icon">⚡</span>
+        <span class="nav-item-label">Registro</span>
+      </a>
+      <a class="nav-item" id="nav-calendar" href="#calendar" onclick="navigate('calendar')">
+        <span class="nav-icon">📅</span>
+        <span class="nav-item-label">Calendario</span>
+      </a>
+      <a class="nav-item" id="nav-settings" href="#settings" onclick="navigate('settings')">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-item-label">Ajustes</span>
+      </a>
+      <a class="nav-item" id="nav-import"   href="#import"   onclick="navigate('import')">
+        <span class="nav-icon">📥</span>
+        <span class="nav-item-label">Importar</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- ── Main content ──────────────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- ══ LIST VIEW ══════════════════════════════════════════════════════════ -->
+    <div id="view-list" class="view-section hidden">
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;padding-bottom:0">
+        <div>
+          <div class="page-title">Registro rápido</div>
+          <div class="page-subtitle">Toca cualquier casilla para registrar una entrada</div>
+        </div>
+        <button class="btn btn-primary" onclick="openNewEntryModal()">+ Nueva entrada</button>
+      </div>
+      <div class="page-body">
+        <div class="list-toolbar">
+          <div class="sort-group">
+            <button class="sort-btn active" data-sort="manual" onclick="setSort(this,'manual')">Manual</button>
+            <button class="sort-btn" data-sort="alpha"  onclick="setSort(this,'alpha')">A–Z</button>
+            <button class="sort-btn" data-sort="cat"    onclick="setSort(this,'cat')">Categoría</button>
+            <button class="sort-btn" data-sort="freq"   onclick="setSort(this,'freq')">Frecuencia</button>
+          </div>
+          <div class="sort-group" style="margin-left:auto">
+            <button class="sort-btn" onclick="shiftListDays(1)" title="Día anterior">←</button>
+            <button class="sort-btn" id="list-range-label" style="min-width:160px;text-align:center;cursor:default;font-weight:700;font-size:11px;color:var(--text-sec)"></button>
+            <button class="sort-btn" id="list-next-btn" onclick="shiftListDays(-1)" title="Día siguiente">→</button>
+          </div>
+          <input type="text" id="list-search" placeholder="Buscar ítem…"
+                 style="width:180px;padding:6px 10px;font-size:13px"
+                 oninput="filterList(this.value)" />
+        </div>
+        <div class="list-wrap" id="list-wrap"></div>
+      </div>
+    </div>
+
+    <!-- ══ CALENDAR VIEW ══════════════════════════════════════════════════════ -->
+    <div id="view-calendar" class="view-section hidden">
+      <div class="page-header" style="display:flex;align-items:center;gap:16px;padding-bottom:0">
+        <div class="page-title">Calendario</div>
+        <div class="sort-group">
+          <button class="sort-btn active" id="view-btn-month" onclick="switchCalView('month')">Mes</button>
+          <button class="sort-btn"        id="view-btn-year"  onclick="switchCalView('year')">Año</button>
+        </div>
+      </div>
+      <div class="page-body" style="display:flex;gap:0;padding:0;height:100%;overflow:hidden">
+        <div style="flex:1;padding:16px 24px 24px;overflow-y:auto;min-width:0" id="cal-main-col">
+
+          <!-- Filter bar -->
+          <div class="cal-filter-bar" id="cal-filters-bar">
+            <div class="msel-wrap" id="msel-cat-wrap">
+              <button class="msel-trigger" id="msel-cat-btn" onclick="toggleMsel('cat')">
+                <span id="msel-cat-label">Todas las categorías</span>
+                <span class="msel-arrow">▾</span>
+              </button>
+              <div class="msel-dropdown hidden" id="msel-cat-drop">
+                <div class="msel-search-wrap">
+                  <input class="msel-search" type="text" placeholder="Buscar…" oninput="filterMselOptions('cat', this.value)" />
+                </div>
+                <div class="msel-options" id="msel-cat-opts"></div>
+                <div class="msel-footer">
+                  <button class="btn btn-ghost btn-sm" onclick="clearMsel('cat')">Limpiar</button>
+                </div>
+              </div>
+            </div>
+            <div class="msel-wrap" id="msel-item-wrap">
+              <button class="msel-trigger" id="msel-item-btn" onclick="toggleMsel('item')">
+                <span id="msel-item-label">Todos los ítems</span>
+                <span class="msel-arrow">▾</span>
+              </button>
+              <div class="msel-dropdown hidden" id="msel-item-drop">
+                <div class="msel-search-wrap">
+                  <input class="msel-search" type="text" placeholder="Buscar…" oninput="filterMselOptions('item', this.value)" />
+                </div>
+                <div class="msel-options" id="msel-item-opts"></div>
+                <div class="msel-footer">
+                  <button class="btn btn-ghost btn-sm" onclick="clearMsel('item')">Limpiar</button>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="calClearFilters()">✕ Limpiar todo</button>
+          </div>
+
+          <!-- Month view -->
+          <div id="view-month">
+            <div class="calendar-nav">
+              <button class="btn btn-ghost btn-sm" onclick="calNav(-1)">← Anterior</button>
+              <div class="month-title" id="cal-month-title"></div>
+              <button class="btn btn-ghost btn-sm" onclick="calNav(1)">Siguiente →</button>
+              <button class="btn btn-ghost btn-sm" onclick="calGoToday()">Hoy</button>
+            </div>
+            <div style="max-width:560px">
+              <div class="calendar-grid">
+                <div class="cal-day-head">Lun</div><div class="cal-day-head">Mar</div>
+                <div class="cal-day-head">Mie</div><div class="cal-day-head">Jue</div>
+                <div class="cal-day-head">Vie</div><div class="cal-day-head">Sab</div>
+                <div class="cal-day-head">Dom</div>
+              </div>
+              <div class="calendar-grid" id="cal-grid" style="margin-top:4px"></div>
+            </div>
+          </div>
+
+          <!-- Year view -->
+          <div id="view-year" class="hidden">
+            <div class="calendar-nav" style="margin-bottom:12px">
+              <button class="btn btn-ghost btn-sm" onclick="yearNav(-1)">← Anterior</button>
+              <div class="month-title" id="cal-year-title" style="font-size:14px;min-width:80px;text-align:center"></div>
+              <button class="btn btn-ghost btn-sm" id="year-next-btn" onclick="yearNav(1)">Siguiente →</button>
+              <button class="btn btn-ghost btn-sm" onclick="yearGoToday()">Año actual</button>
+            </div>
+            <div id="year-grid"></div>
+          </div>
+        </div>
+
+        <!-- Detail panel -->
+        <div class="detail-panel" id="detail-panel">
+          <div class="detail-panel-header">
+            <div>
+              <div class="detail-date-title" id="detail-date-title">—</div>
+              <div class="detail-date-sub"   id="detail-date-sub"></div>
+            </div>
+            <button class="btn-icon" onclick="closeDetailPanel()">✕</button>
+          </div>
+          <div class="detail-panel-body" id="detail-panel-body">
+            <div class="empty-day">Selecciona un día</div>
+          </div>
+          <div class="detail-panel-footer">
+            <button class="btn btn-primary w-full" onclick="addEntryForSelectedDay()">+ Añadir entrada</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SETTINGS VIEW ══════════════════════════════════════════════════════ -->
+    <div id="view-settings" class="view-section hidden">
+      <div class="page-header">
+        <div class="page-title">Categorías e ítems</div>
+        <div class="page-subtitle">Gestiona tus categorías y los ítems de cada una</div>
+      </div>
+      <div class="page-body">
+        <div class="settings-grid">
+
+          <!-- Categories -->
+          <div class="settings-card">
+            <div class="settings-card-head">
+              <span class="settings-card-title">Categorías</span>
+            </div>
+            <div class="settings-card-body">
+              <div class="add-form" style="margin-top:0;padding-top:0;border-top:none;border-bottom:1px solid var(--border-dim);padding-bottom:14px;margin-bottom:14px">
+                <div class="form-field">
+                  <label>Nombre</label>
+                  <input type="text" id="new-cat-name" placeholder="ej: Ejercicio" />
+                </div>
+                <div class="input-row">
+                  <div class="form-field" style="flex:1">
+                    <label>Color</label>
+                    <input type="color" id="new-cat-color" value="#7c6ef7" />
+                  </div>
+                  <div class="form-field" style="flex:2">
+                    <label>Icono (emoji)</label>
+                    <input type="text" id="new-cat-icon" placeholder="🏃" maxlength="4" />
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="addCategory()">+ Añadir categoría</button>
+              </div>
+              <div id="cat-list"></div>
+            </div>
+          </div>
+
+          <!-- Items -->
+          <div class="settings-card">
+            <div class="settings-card-head">
+              <span class="settings-card-title">Ítems</span>
+              <select id="item-cat-filter" onchange="loadItems().then(renderItemList)" style="font-size:12px;padding:4px 8px;width:auto">
+                <option value="">Todas las categorías</option>
+              </select>
+            </div>
+            <div class="settings-card-body">
+              <div class="add-form" style="margin-top:0;padding-top:0;border-top:none;border-bottom:1px solid var(--border-dim);padding-bottom:14px;margin-bottom:14px">
+                <div class="form-field">
+                  <label>Categoría</label>
+                  <select id="new-item-cat"></select>
+                </div>
+                <div class="form-field">
+                  <label>Nombre</label>
+                  <input type="text" id="new-item-name" placeholder="ej: Correr" />
+                </div>
+                <div class="form-field">
+                  <label>Tipo de valor</label>
+                  <div class="type-chips" id="new-item-type-chips">
+                    <div class="type-chip active" data-type="none"     onclick="selectType(this)">Sin valor</div>
+                    <div class="type-chip"        data-type="numeric"  onclick="selectType(this)">Numérico</div>
+                    <div class="type-chip"        data-type="discrete" onclick="selectType(this)">Opciones</div>
+                  </div>
+                </div>
+                <div class="form-field hidden" id="new-item-unit-field">
+                  <label>Unidad por defecto</label>
+                  <input type="text" id="new-item-unit" placeholder="km, kg, min…" />
+                </div>
+                <div class="form-field hidden" id="new-item-req-field">
+                  <label class="toggle">
+                    <input type="checkbox" id="new-item-req" />
+                    <span class="toggle-track"></span>
+                    Valor obligatorio
+                  </label>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="addItem()">+ Añadir ítem</button>
+              </div>
+              <div id="item-list"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Item edit modal -->
+      <div class="modal-overlay hidden" id="item-edit-modal">
+        <div class="modal-card modal-lg">
+          <div class="modal-header">
+            <div class="modal-title-block">
+              <div class="modal-item-name" id="item-edit-modal-title">Editar ítem</div>
+            </div>
+            <button class="modal-close" onclick="closeItemEditModal()">✕</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="edit-item-id" />
+            <div class="item-edit-grid">
+              <div class="form-field">
+                <label>Nombre</label>
+                <input type="text" id="edit-item-name" />
+              </div>
+              <div class="form-field">
+                <label>Categoría</label>
+                <select id="edit-item-cat"></select>
+              </div>
+              <div class="form-field">
+                <label>Tipo de valor</label>
+                <div class="type-chips" id="edit-item-type-chips">
+                  <div class="type-chip" data-type="none"     onclick="editSelectType(this)">Sin valor</div>
+                  <div class="type-chip" data-type="numeric"  onclick="editSelectType(this)">Numérico</div>
+                  <div class="type-chip" data-type="discrete" onclick="editSelectType(this)">Opciones</div>
+                </div>
+              </div>
+              <div class="form-field" id="edit-item-unit-field">
+                <label>Unidad</label>
+                <input type="text" id="edit-item-unit" placeholder="km, kg…" />
+              </div>
+            </div>
+            <div class="form-field mt-8" id="edit-item-req-field">
+              <label class="toggle">
+                <input type="checkbox" id="edit-item-req" />
+                <span class="toggle-track"></span>
+                Valor obligatorio
+              </label>
+            </div>
+            <div class="hidden mt-12" id="edit-item-options-section">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <label style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-sec)">Opciones</label>
+                <button class="btn btn-ghost btn-sm" onclick="addOptionRow()">+ Añadir opción</button>
+              </div>
+              <div class="form-field" style="margin-bottom:10px">
+                <label>Modo de color</label>
+                <div class="color-mode-tabs">
+                  <div class="color-mode-tab active" data-mode="category" onclick="selectColorMode(this)">Categoría</div>
+                  <div class="color-mode-tab"        data-mode="preset"   onclick="selectColorMode(this)">Personalizado</div>
+                  <div class="color-mode-tab"        data-mode="gradient" onclick="selectColorMode(this)">Degradado</div>
+                </div>
+              </div>
+              <div class="hidden" id="gradient-config">
+                <div class="form-field" style="margin-bottom:8px">
+                  <label>Puntos del degradado (2 o 3 colores)</label>
+                  <div style="display:flex;gap:8px;align-items:center" id="gradient-stops">
+                    <input type="color" class="grad-stop" value="#22c55e" oninput="updateGradientPreview()" />
+                    <input type="color" class="grad-stop" value="#ef4444" oninput="updateGradientPreview()" />
+                    <button class="btn btn-ghost btn-sm" onclick="toggleThirdStop()">+/- color</button>
+                  </div>
+                </div>
+                <div class="gradient-preview" id="gradient-preview"></div>
+              </div>
+              <div class="options-manager" id="options-manager"></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-danger btn-sm" onclick="deleteItem()">🗑 Eliminar</button>
+            <button class="btn btn-ghost" onclick="closeItemEditModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveItemEdit()">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ IMPORT VIEW ════════════════════════════════════════════════════════ -->
+    <div id="view-import" class="view-section hidden">
+      <div class="page-header">
+        <div class="page-title">Importar datos</div>
+        <div class="page-subtitle">Importa entradas desde un CSV con columnas Date, Value, Notes, Item</div>
+      </div>
+      <div class="page-body">
+        <div style="max-width:800px">
+
+          <!-- Step 1: Upload -->
+          <div class="settings-card" id="step-upload">
+            <div class="settings-card-head">
+              <span class="settings-card-title">Paso 1 — Selecciona el fichero CSV</span>
+            </div>
+            <div class="settings-card-body">
+              <p style="font-size:13px;color:var(--text-sec);margin-bottom:14px">
+                El fichero debe tener cabecera con estas columnas exactas:
+                <code style="background:var(--surface-3);padding:2px 6px;border-radius:4px;font-size:12px">Date, Value, Notes, Item</code>
+              </p>
+              <div class="form-field">
+                <label>Fichero CSV</label>
+                <input type="file" id="csv-file" accept=".csv,.txt"
+                       style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;color:var(--text);cursor:pointer" />
+              </div>
+              <div style="margin-top:14px">
+                <button class="btn btn-primary" onclick="previewCSV()">Analizar fichero →</button>
+              </div>
+              <div id="upload-error" class="hidden" style="margin-top:10px;color:var(--danger);font-size:13px;font-weight:600"></div>
+            </div>
+          </div>
+
+          <!-- Step 2: Mapping -->
+          <div class="settings-card hidden" id="step-mapping" style="margin-top:20px">
+            <div class="settings-card-head">
+              <span class="settings-card-title">Paso 2 — Mapea los ítems del CSV</span>
+            </div>
+            <div class="settings-card-body">
+              <p style="font-size:13px;color:var(--text-sec);margin-bottom:16px">
+                Para cada ítem encontrado en el CSV, indica a qué ítem de Life Tracker corresponde.
+              </p>
+              <div id="bad-dates-warn" class="hidden" style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--warning)"></div>
+              <div id="mapping-table"></div>
+              <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-dim)">
+                <div class="form-field">
+                  <label>Si ya existe una entrada para ese día e ítem</label>
+                  <div class="type-chips" id="conflict-chips">
+                    <div class="type-chip active" data-conflict="ignore"    onclick="selectConflict(this)">Ignorar (conservar la existente)</div>
+                    <div class="type-chip"        data-conflict="overwrite" onclick="selectConflict(this)">Sobreescribir con la del CSV</div>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:20px;display:flex;gap:10px;align-items:center">
+                <button class="btn btn-primary" onclick="executeImport()">Importar →</button>
+                <button class="btn btn-ghost" onclick="resetImport()">← Volver</button>
+                <span id="mapping-count" style="font-size:12px;color:var(--text-muted)"></span>
+              </div>
+              <div id="mapping-error" class="hidden" style="margin-top:10px;color:var(--danger);font-size:13px;font-weight:600"></div>
+            </div>
+          </div>
+
+          <!-- Step 3: Result -->
+          <div class="settings-card hidden" id="step-result" style="margin-top:20px">
+            <div class="settings-card-head">
+              <span class="settings-card-title">Importación completada</span>
+            </div>
+            <div class="settings-card-body">
+              <div id="result-stats"></div>
+              <div style="margin-top:20px;display:flex;gap:10px">
+                <button class="btn btn-primary" onclick="navigate('list')">Ver en registro rápido</button>
+                <button class="btn btn-ghost" onclick="resetImport()">Importar otro fichero</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Create item mini-modal -->
+          <div class="modal-overlay hidden" id="create-item-modal">
+            <div class="modal-card">
+              <div class="modal-header">
+                <div class="modal-title-block">
+                  <div class="modal-item-name">Crear nuevo ítem</div>
+                  <div class="modal-date-label" id="create-item-for-label"></div>
+                </div>
+                <button class="modal-close" onclick="closeCreateItemModal()">✕</button>
+              </div>
+              <div class="modal-body">
+                <div class="form-field">
+                  <label>Nombre del ítem</label>
+                  <input type="text" id="new-item-name-import" />
+                </div>
+                <div class="form-field">
+                  <label>Categoría</label>
+                  <select id="new-item-cat-import"></select>
+                </div>
+                <div class="form-field">
+                  <label>Tipo de valor</label>
+                  <div class="type-chips" id="new-item-type-import">
+                    <div class="type-chip active" data-type="none"    onclick="selectImportType(this)">Sin valor</div>
+                    <div class="type-chip"        data-type="numeric" onclick="selectImportType(this)">Numérico</div>
+                  </div>
+                </div>
+                <div class="form-field hidden" id="new-item-unit-import-field">
+                  <label>Unidad</label>
+                  <input type="text" id="new-item-unit-import" placeholder="km, kg, min…" />
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeCreateItemModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="confirmCreateItem()">Crear ítem</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Toast container ──────────────────────────────────────────────────────── -->
+<div id="toast-container"></div>
+
+<!-- ── Entry modal ──────────────────────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="entry-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title-block">
+        <div class="modal-item-name">
+          <span class="modal-item-dot" id="modal-item-dot"></span>
+          <span id="modal-item-name-text">Nueva entrada</span>
+        </div>
+        <div class="modal-date-label" id="modal-date-label"></div>
+      </div>
+      <button class="modal-close" onclick="closeEntryModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="modal-entry-id" value="" />
+      <input type="hidden" id="modal-item-id" value="" />
+      <div class="form-field" id="modal-date-field">
+        <label>Fecha</label>
+        <input type="date" id="modal-date" />
+      </div>
+      <div class="form-field hidden" id="modal-item-selector-field">
+        <label id="modal-selector-step-label">Elige una categoría:</label>
+        <div class="item-selector-list" id="modal-item-selector-list"></div>
+      </div>
+      <div class="form-field hidden" id="modal-value-field">
+        <label>Valor <span id="modal-value-required-badge" class="hidden" style="color:var(--danger);font-size:10px">REQUERIDO</span></label>
+        <div class="input-with-unit">
+          <input type="number" id="modal-value" step="any" placeholder="0" />
+          <span class="unit-badge" id="modal-unit-badge"></span>
+        </div>
+      </div>
+      <div class="form-field hidden" id="modal-discrete-field">
+        <label>Opción</label>
+        <div class="option-pills" id="modal-option-pills"></div>
+      </div>
+      <div class="form-field" id="modal-notes-field">
+        <label>Notas</label>
+        <textarea id="modal-notes" rows="3" placeholder="Texto libre…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm hidden" id="modal-delete-btn" onclick="deleteCurrentEntry()">🗑 Eliminar</button>
+      <button class="btn btn-ghost" onclick="closeEntryModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEntry()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Item year panel ───────────────────────────────────────────────────────── -->
+<div class="item-year-panel" id="item-year-panel">
+  <div class="item-year-panel-header">
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+        <div class="item-panel-title" id="item-panel-title">—</div>
+        <span class="item-panel-cat-badge" id="item-panel-cat"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+        <button class="btn btn-ghost btn-sm" onclick="_itemPanelYear--;renderItemYearPanel()">←</button>
+        <span id="item-panel-year" style="font-size:13px;font-weight:700;font-family:monospace;color:var(--text-sec);min-width:36px;text-align:center"></span>
+        <button class="btn btn-ghost btn-sm" id="item-panel-next-btn" onclick="_itemPanelYear++;renderItemYearPanel()">→</button>
+      </div>
+    </div>
+    <button class="btn-icon" onclick="closeItemYearPanel()">✕</button>
+  </div>
+  <div class="item-year-panel-body" id="item-panel-body"></div>
+</div>
+
+<!-- ── Scripts ───────────────────────────────────────────────────────────────── -->
+<script src="db.js"></script>
+<script src="app.js"></script>
+<script>
+/* ── SPA Router ─────────────────────────────────────────────────────────── */
+const VIEWS = ['list','calendar','settings','import'];
+
+function navigate(view) {
+  if (!VIEWS.includes(view)) view = 'list';
+  window._currentView = view;
+  window.location.hash = view;
+
+  // Show/hide sections
+  VIEWS.forEach(v => {
+    document.getElementById(`view-${v}`).classList.toggle('hidden', v !== view);
+    const navEl = document.getElementById(`nav-${v}`);
+    if (navEl) navEl.classList.toggle('active', v === view);
+  });
+
+  // Initialize the view
+  if (view === 'list')     initListView();
+  else if (view === 'calendar') {
+    if (!window._calInitialized) { initCalendarView(); window._calInitialized = true; }
+    else calLoad();
+  }
+  else if (view === 'settings') initSettingsView();
+  else if (view === 'import')   initImportView();
+}
+
+// Handle browser back/forward
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash.replace('#','') || 'list';
+  navigate(hash);
+});
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// Boot on load
+document.addEventListener('DOMContentLoaded', () => {
+  const hash = window.location.hash.replace('#','') || 'list';
+  navigate(hash);
+});
+</script>
+</body>
+</html>
