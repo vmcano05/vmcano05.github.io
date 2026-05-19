@@ -436,10 +436,12 @@ function setSort(btn, sort) {
 }
 
 function getLast14Days() {
+  const isMobile = window.innerWidth <= 700;
+  const count = isMobile ? 5 : 14;
   const days = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  for (let i = 13; i >= 0; i--) {
+  for (let i = count - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i - _listOffset);
     days.push(d);
@@ -504,8 +506,12 @@ async function renderListView(search = '') {
   wrap.innerHTML = '';
 
   // Header row (day names)
+  const isMobile = window.innerWidth <= 700;
   const header = document.createElement('div');
   header.className = 'list-header-row';
+  if (isMobile) {
+    header.style.gridTemplateColumns = `130px repeat(${days.length}, 1fr)`;
+  }
   header.innerHTML = `<div class="item-col-head">Ítem</div>`;
   days.forEach(d => {
     const iso = isoDate(d);
@@ -539,6 +545,9 @@ async function renderListView(search = '') {
     row.draggable = _currentSort === 'manual';
     row.dataset.itemId = item.id;
     row.dataset.rowIndex = rowIndex;
+    if (isMobile) {
+      row.style.gridTemplateColumns = `130px repeat(${days.length}, 1fr)`;
+    }
 
     if (_currentSort === 'manual') {
       row.addEventListener('dragstart', onDragStart);
